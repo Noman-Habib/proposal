@@ -381,8 +381,85 @@
     opacity: 0.6;
   }
 
+  /* Large party overflow input */
+  .overflow-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 20px;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--glass);
+    transition: border-color 0.25s;
+  }
+  .overflow-row:focus-within { border-color: var(--gold-dim); }
+  .overflow-label {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .overflow-label span { color: var(--gold); }
+  .overflow-input {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    outline: none;
+    color: var(--gold-light);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 300;
+    width: 90px;
+    text-align: center;
+    padding: 2px 4px;
+    transition: border-color 0.2s;
+  }
+  .overflow-input::placeholder { color: var(--charcoal); font-size: 18px; }
+  .overflow-input:focus { border-bottom-color: var(--gold); }
+  /* hide number spinners */
+  .overflow-input::-webkit-outer-spin-button,
+  .overflow-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .overflow-input[type=number] { -moz-appearance: textfield; }
+
+  /* PDF button */
+  .pdf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 17px 52px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+    margin-top: 14px;
+  }
+  .pdf-btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(201,168,76,0.08);
+    transform: translateX(-101%);
+    transition: transform 0.3s ease;
+    z-index: 0;
+  }
+  .pdf-btn:hover::before { transform: translateX(0); }
+  .pdf-btn:hover { border-color: var(--gold-dim); color: var(--cream); }
+  .pdf-btn span { position: relative; z-index: 1; }
+  .pdf-icon { font-size: 13px; position: relative; z-index: 1; }
+
   @media (max-width: 480px) {
     .addon-grid, .radio-grid { grid-template-columns: 1fr; }
+    .cta-btn, .pdf-btn { padding: 16px 28px; }
   }
 </style>
 </head>
@@ -424,8 +501,13 @@
       <span class="slider-title">Guests (Bottles)</span>
       <span class="slider-value" id="guestVal">50</span>
     </div>
-    <input type="range" id="guestSlider" min="10" max="300" step="5" value="50" oninput="recalc()">
-    <div class="slider-labels"><span>10</span><span>150</span><span>300</span></div>
+    <input type="range" id="guestSlider" min="10" max="300" step="5" value="50" oninput="onSliderMove()">
+    <div class="slider-labels"><span>10</span><span>150</span><span>300+</span></div>
+
+    <div class="overflow-row">
+      <span class="overflow-label">Larger gathering? &nbsp;<span style="color:var(--gold)">Enter exact count</span></span>
+      <input type="number" id="guestOverride" class="overflow-input" placeholder="300+" min="1" oninput="onOverrideType()">
+    </div>
   </div>
 
   <!-- 03 Add-ons -->
@@ -543,7 +625,9 @@
   <!-- CTA -->
   <div class="cta-wrap">
     <p class="cta-note">Ready to bring this experience to your event?<br>Reach out and we'll craft your perfect custom proposal.</p>
-    <a href="mailto:hello@essenceperfumecart.com" class="cta-btn"><span>Request a Custom Proposal</span></a>
+    <a href="/cdn-cgi/l/email-protection#ec8489808083ac899f9f89828f899c899e8a9981898f8d9e98c28f8381" class="cta-btn"><span>Request a Custom Proposal</span></a>
+    <br>
+    <button class="pdf-btn" onclick="savePDF()"><span class="pdf-icon">⬇</span><span>Save Quote as PDF</span></button>
   </div>
 
   <p class="footer-note">
@@ -553,7 +637,93 @@
 
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js">
+  function savePDF() {
+    // Collect current quote state for the PDF
+    const guests   = getGuests();
+    const size     = document.querySelector('input[name="bottleSize"]:checked').value;
+    const sizeLabel = size + 'mL';
+    const pricePer = PRICES[size];
+    const bottleSub = guests * pricePer;
+    const bagsOn    = document.getElementById('bags').checked;
+    const bagsCost  = bagsOn ? guests * 1.5 : 0;
+
+    let addonLines = [];
+    if (document.getElementById('neon').checked)         addonLines.push(['Custom Neon Sign', 350]);
+    if (document.getElementById('cartSign').checked)     addonLines.push(['Custom Cart Sign', 300]);
+    if (document.getElementById('photos').checked)       addonLines.push(['Custom Photography', 100]);
+    if (document.getElementById('flowerWall').checked)   addonLines.push(['Flower Wall / Black Drape', 500]);
+    if (document.getElementById('backdrop').checked)     addonLines.push(['Full Backdrop', 900]);
+    if (document.getElementById('scentSession').checked) addonLines.push(['Scent Customization Session', 150]);
+    const addonsCost = addonLines.reduce((s, a) => s + a[1], 0);
+
+    const total = bottleSub + TRAVEL + bagsCost + addonsCost;
+    const date  = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    let addonRows = '';
+    addonLines.forEach(a => {
+      addonRows += `<tr><td>${a[0]}</td><td>${fmt(a[1])}</td></tr>`;
+    });
+    if (bagsOn) {
+      addonRows = `<tr><td>Custom Gift Bags (${guests.toLocaleString()} guests)</td><td>${fmt(bagsCost)}</td></tr>` + addonRows;
+    }
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Essence Perfume Bar — Estimate</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Montserrat', sans-serif; background: #fff; color: #1a1710; padding: 60px 64px; max-width: 680px; margin: 0 auto; }
+  .logo { font-family: 'Cormorant Garamond', serif; font-size: 11px; letter-spacing: 0.4em; text-transform: uppercase; color: #8B6E30; margin-bottom: 6px; }
+  h1 { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 300; color: #0f0d0a; margin-bottom: 4px; }
+  h1 em { font-style: italic; color: #C9A84C; }
+  .date { font-size: 10px; letter-spacing: 0.14em; color: #6B6255; margin-top: 8px; }
+  .divider { height: 1px; background: #e8d5aa; margin: 32px 0; }
+  .section-head { font-size: 9px; font-weight: 600; letter-spacing: 0.4em; text-transform: uppercase; color: #C9A84C; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 11px 0; border-bottom: 1px solid #f0e8d5; font-size: 13px; color: #2a2620; }
+  td:last-child { text-align: right; font-weight: 500; }
+  .total-row td { border-top: 2px solid #C9A84C; border-bottom: none; padding-top: 18px; font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 400; color: #0f0d0a; }
+  .total-row td:first-child { text-transform: uppercase; letter-spacing: 0.18em; font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 600; }
+  .total-amount { color: #C9A84C !important; font-size: 28px !important; }
+  .disclaimer { margin-top: 40px; font-size: 10px; color: #6B6255; letter-spacing: 0.1em; line-height: 2; text-align: center; }
+  .footer { margin-top: 16px; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #8B6E30; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="logo">Essence Perfume Bar</div>
+  <h1>Experience <em>Estimate</em></h1>
+  <p class="date">Prepared ${date}</p>
+  <div class="divider"></div>
+
+  <p class="section-head">Event Summary</p>
+  <table>
+    <tr><td>${guests.toLocaleString()} × ${sizeLabel} Bottles</td><td>${fmt(bottleSub)}</td></tr>
+    <tr><td>Travel &amp; Setup</td><td>${fmt(TRAVEL)}</td></tr>
+    ${addonRows}
+    <tr class="total-row"><td>Estimated Total</td><td class="total-amount">${fmt(total)}</td></tr>
+  </table>
+
+  <p class="disclaimer">
+    This is an estimate only. Final pricing is confirmed upon booking.<br>
+    Prices subject to change based on event specifics.
+  </p>
+  <div class="divider"></div>
+  <p class="footer">essenceperfumecart.com &nbsp;·&nbsp; Dallas, TX</p>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    // Small delay to let fonts load before print dialog
+    setTimeout(() => { win.print(); }, 800);
+  }
+
+</script><script>
   const TRAVEL = 500;
   const PRICES = { '15': 20, '30': 30 };
 
@@ -561,13 +731,35 @@
     return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0 });
   }
 
+  function onSliderMove() {
+    // Clear override when slider moves
+    document.getElementById('guestOverride').value = '';
+    recalc();
+  }
+
+  function onOverrideType() {
+    const val = parseInt(document.getElementById('guestOverride').value);
+    if (val && val > 0) {
+      // Clamp slider to max if override is larger
+      const slider = document.getElementById('guestSlider');
+      slider.value = Math.min(val, 300);
+    }
+    recalc();
+  }
+
+  function getGuests() {
+    const override = parseInt(document.getElementById('guestOverride').value);
+    if (override && override > 0) return override;
+    return parseInt(document.getElementById('guestSlider').value);
+  }
+
   function recalc() {
-    const guests = parseInt(document.getElementById('guestSlider').value);
+    const guests = getGuests();
     const size   = document.querySelector('input[name="bottleSize"]:checked').value;
     const pricePer = PRICES[size];
     const sizeLabel = size + 'mL';
 
-    document.getElementById('guestVal').textContent = guests;
+    document.getElementById('guestVal').textContent = guests.toLocaleString();
 
     const bottleSub = guests * pricePer;
 
@@ -610,12 +802,4 @@
       document.getElementById('amt-addons').textContent = fmt(addonsCost);
     } else {
       addonsRow.classList.add('dimmed');
-      document.getElementById('amt-addons').textContent = '—';
-    }
-  }
-
-  document.querySelectorAll('input[name="bottleSize"]').forEach(r => r.addEventListener('change', recalc));
-  recalc();
-</script>
-</body>
-</html>
+      document.getElementById('amt-addons').textContent = '—'

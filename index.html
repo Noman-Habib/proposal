@@ -637,93 +637,7 @@
 
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js">
-  function savePDF() {
-    // Collect current quote state for the PDF
-    const guests   = getGuests();
-    const size     = document.querySelector('input[name="bottleSize"]:checked').value;
-    const sizeLabel = size + 'mL';
-    const pricePer = PRICES[size];
-    const bottleSub = guests * pricePer;
-    const bagsOn    = document.getElementById('bags').checked;
-    const bagsCost  = bagsOn ? guests * 1.5 : 0;
-
-    let addonLines = [];
-    if (document.getElementById('neon').checked)         addonLines.push(['Custom Neon Sign', 350]);
-    if (document.getElementById('cartSign').checked)     addonLines.push(['Custom Cart Sign', 300]);
-    if (document.getElementById('photos').checked)       addonLines.push(['Custom Photography', 100]);
-    if (document.getElementById('flowerWall').checked)   addonLines.push(['Flower Wall / Black Drape', 500]);
-    if (document.getElementById('backdrop').checked)     addonLines.push(['Full Backdrop', 900]);
-    if (document.getElementById('scentSession').checked) addonLines.push(['Scent Customization Session', 150]);
-    const addonsCost = addonLines.reduce((s, a) => s + a[1], 0);
-
-    const total = bottleSub + TRAVEL + bagsCost + addonsCost;
-    const date  = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-    let addonRows = '';
-    addonLines.forEach(a => {
-      addonRows += `<tr><td>${a[0]}</td><td>${fmt(a[1])}</td></tr>`;
-    });
-    if (bagsOn) {
-      addonRows = `<tr><td>Custom Gift Bags (${guests.toLocaleString()} guests)</td><td>${fmt(bagsCost)}</td></tr>` + addonRows;
-    }
-
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Essence Perfume Bar — Estimate</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Montserrat', sans-serif; background: #fff; color: #1a1710; padding: 60px 64px; max-width: 680px; margin: 0 auto; }
-  .logo { font-family: 'Cormorant Garamond', serif; font-size: 11px; letter-spacing: 0.4em; text-transform: uppercase; color: #8B6E30; margin-bottom: 6px; }
-  h1 { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 300; color: #0f0d0a; margin-bottom: 4px; }
-  h1 em { font-style: italic; color: #C9A84C; }
-  .date { font-size: 10px; letter-spacing: 0.14em; color: #6B6255; margin-top: 8px; }
-  .divider { height: 1px; background: #e8d5aa; margin: 32px 0; }
-  .section-head { font-size: 9px; font-weight: 600; letter-spacing: 0.4em; text-transform: uppercase; color: #C9A84C; margin-bottom: 16px; }
-  table { width: 100%; border-collapse: collapse; }
-  td { padding: 11px 0; border-bottom: 1px solid #f0e8d5; font-size: 13px; color: #2a2620; }
-  td:last-child { text-align: right; font-weight: 500; }
-  .total-row td { border-top: 2px solid #C9A84C; border-bottom: none; padding-top: 18px; font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 400; color: #0f0d0a; }
-  .total-row td:first-child { text-transform: uppercase; letter-spacing: 0.18em; font-family: 'Montserrat', sans-serif; font-size: 11px; font-weight: 600; }
-  .total-amount { color: #C9A84C !important; font-size: 28px !important; }
-  .disclaimer { margin-top: 40px; font-size: 10px; color: #6B6255; letter-spacing: 0.1em; line-height: 2; text-align: center; }
-  .footer { margin-top: 16px; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #8B6E30; text-align: center; }
-</style>
-</head>
-<body>
-  <div class="logo">Essence Perfume Bar</div>
-  <h1>Experience <em>Estimate</em></h1>
-  <p class="date">Prepared ${date}</p>
-  <div class="divider"></div>
-
-  <p class="section-head">Event Summary</p>
-  <table>
-    <tr><td>${guests.toLocaleString()} × ${sizeLabel} Bottles</td><td>${fmt(bottleSub)}</td></tr>
-    <tr><td>Travel &amp; Setup</td><td>${fmt(TRAVEL)}</td></tr>
-    ${addonRows}
-    <tr class="total-row"><td>Estimated Total</td><td class="total-amount">${fmt(total)}</td></tr>
-  </table>
-
-  <p class="disclaimer">
-    This is an estimate only. Final pricing is confirmed upon booking.<br>
-    Prices subject to change based on event specifics.
-  </p>
-  <div class="divider"></div>
-  <p class="footer">essenceperfumecart.com &nbsp;·&nbsp; Dallas, TX</p>
-</body>
-</html>`;
-
-    const win = window.open('', '_blank');
-    win.document.write(html);
-    win.document.close();
-    // Small delay to let fonts load before print dialog
-    setTimeout(() => { win.print(); }, 800);
-  }
-
-</script><script>
+<script>
   const TRAVEL = 500;
   const PRICES = { '15': 20, '30': 30 };
 
@@ -731,40 +645,34 @@
     return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0 });
   }
 
+  // --- Guest count helpers ---
   function onSliderMove() {
-    // Clear override when slider moves
     document.getElementById('guestOverride').value = '';
     recalc();
   }
 
   function onOverrideType() {
-    const val = parseInt(document.getElementById('guestOverride').value);
-    if (val && val > 0) {
-      // Clamp slider to max if override is larger
-      const slider = document.getElementById('guestSlider');
-      slider.value = Math.min(val, 300);
-    }
     recalc();
   }
 
   function getGuests() {
-    const override = parseInt(document.getElementById('guestOverride').value);
-    if (override && override > 0) return override;
+    const ov = parseInt(document.getElementById('guestOverride').value);
+    if (!isNaN(ov) && ov > 0) return ov;
     return parseInt(document.getElementById('guestSlider').value);
   }
 
+  // --- Main recalc ---
   function recalc() {
-    const guests = getGuests();
-    const size   = document.querySelector('input[name="bottleSize"]:checked').value;
-    const pricePer = PRICES[size];
+    const guests    = getGuests();
+    const size      = document.querySelector('input[name="bottleSize"]:checked').value;
+    const pricePer  = PRICES[size];
     const sizeLabel = size + 'mL';
 
     document.getElementById('guestVal').textContent = guests.toLocaleString();
 
     const bottleSub = guests * pricePer;
-
-    const bagsOn = document.getElementById('bags').checked;
-    const bagsCost = bagsOn ? guests * 1.5 : 0;
+    const bagsOn    = document.getElementById('bags').checked;
+    const bagsCost  = bagsOn ? guests * 1.5 : 0;
 
     let addonsCost = 0;
     if (document.getElementById('neon').checked)         addonsCost += 350;
@@ -776,30 +684,109 @@
 
     const total = bottleSub + TRAVEL + bagsCost + addonsCost;
 
-    // Update headline
     document.getElementById('quoteTotal').textContent = fmt(total);
     document.getElementById('amt-total').textContent  = fmt(total);
 
-    // Bottles row
-    document.getElementById('lbl-bottles').textContent = `${guests} × ${sizeLabel} Bottles`;
-    document.getElementById('amt-bottles').textContent  = fmt(bottleSub);
+    document.getElementById('lbl-bottles').textContent = guests.toLocaleString() + ' × ' + sizeLabel + ' Bottles';
+    document.getElementById('amt-bottles').textContent = fmt(bottleSub);
 
-    // Bags row
     const bagsRow = document.getElementById('row-bags');
     if (bagsOn) {
       bagsRow.classList.remove('dimmed');
-      document.getElementById('lbl-bags').textContent = `Gift Bags (${guests} guests)`;
+      document.getElementById('lbl-bags').textContent = 'Gift Bags (' + guests.toLocaleString() + ' guests)';
       document.getElementById('amt-bags').textContent = fmt(bagsCost);
     } else {
       bagsRow.classList.add('dimmed');
       document.getElementById('amt-bags').textContent = '—';
     }
 
-    // Addons row
     const addonsRow = document.getElementById('row-addons');
     if (addonsCost > 0) {
       addonsRow.classList.remove('dimmed');
       document.getElementById('amt-addons').textContent = fmt(addonsCost);
     } else {
       addonsRow.classList.add('dimmed');
-      document.getElementById('amt-addons').textContent = '—'
+      document.getElementById('amt-addons').textContent = '—';
+    }
+  }
+
+  // --- PDF export ---
+  function savePDF() {
+    const guests    = getGuests();
+    const size      = document.querySelector('input[name="bottleSize"]:checked').value;
+    const sizeLabel = size + 'mL';
+    const pricePer  = PRICES[size];
+    const bottleSub = guests * pricePer;
+    const bagsOn    = document.getElementById('bags').checked;
+    const bagsCost  = bagsOn ? guests * 1.5 : 0;
+
+    const addonLines = [];
+    if (document.getElementById('neon').checked)         addonLines.push(['Custom Neon Sign', 350]);
+    if (document.getElementById('cartSign').checked)     addonLines.push(['Custom Cart Sign', 300]);
+    if (document.getElementById('photos').checked)       addonLines.push(['Custom Photography', 100]);
+    if (document.getElementById('flowerWall').checked)   addonLines.push(['Flower Wall / Black Drape', 500]);
+    if (document.getElementById('backdrop').checked)     addonLines.push(['Full Backdrop', 900]);
+    if (document.getElementById('scentSession').checked) addonLines.push(['Scent Customization Session', 150]);
+    const addonsCost = addonLines.reduce(function(s, a){ return s + a[1]; }, 0);
+
+    const total = bottleSub + TRAVEL + bagsCost + addonsCost;
+    const date  = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    let addonRows = '';
+    if (bagsOn) {
+      addonRows += '<tr><td>Custom Gift Bags (' + guests.toLocaleString() + ' guests)</td><td>' + fmt(bagsCost) + '</td></tr>';
+    }
+    addonLines.forEach(function(a) {
+      addonRows += '<tr><td>' + a[0] + '</td><td>' + fmt(a[1]) + '</td></tr>';
+    });
+
+    const html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Essence Perfume Bar — Estimate</title>'
+      + '<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">'
+      + '<style>'
+      + '* { box-sizing: border-box; margin: 0; padding: 0; }'
+      + 'body { font-family: Montserrat, sans-serif; background: #fff; color: #1a1710; padding: 60px 64px; max-width: 680px; margin: 0 auto; }'
+      + '.logo { font-family: "Cormorant Garamond", serif; font-size: 11px; letter-spacing: 0.4em; text-transform: uppercase; color: #8B6E30; margin-bottom: 6px; }'
+      + 'h1 { font-family: "Cormorant Garamond", serif; font-size: 40px; font-weight: 300; color: #0f0d0a; margin-bottom: 4px; }'
+      + 'h1 em { font-style: italic; color: #C9A84C; }'
+      + '.date { font-size: 10px; letter-spacing: 0.14em; color: #6B6255; margin-top: 10px; }'
+      + '.divider { height: 1px; background: #e8d5aa; margin: 32px 0; }'
+      + 'table { width: 100%; border-collapse: collapse; margin-top: 8px; }'
+      + 'td { padding: 12px 0; border-bottom: 1px solid #f0e8d5; font-size: 13px; color: #2a2620; }'
+      + 'td:last-child { text-align: right; font-weight: 500; }'
+      + '.total-row td { border-top: 2px solid #C9A84C; border-bottom: none; padding-top: 20px; }'
+      + '.total-label { font-family: Montserrat, sans-serif; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; color: #0f0d0a; }'
+      + '.total-amount { font-family: "Cormorant Garamond", serif; font-size: 30px; font-weight: 300; color: #C9A84C; text-align: right; }'
+      + '.disclaimer { margin-top: 40px; font-size: 10px; color: #6B6255; letter-spacing: 0.1em; line-height: 2; text-align: center; }'
+      + '.footer-pdf { margin-top: 14px; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #8B6E30; text-align: center; }'
+      + '</style></head><body>'
+      + '<p class="logo">Essence Perfume Bar</p>'
+      + '<h1>Experience <em>Estimate</em></h1>'
+      + '<p class="date">Prepared ' + date + '</p>'
+      + '<div class="divider"></div>'
+      + '<table>'
+      + '<tr><td>' + guests.toLocaleString() + ' &times; ' + sizeLabel + ' Bottles</td><td>' + fmt(bottleSub) + '</td></tr>'
+      + '<tr><td>Travel &amp; Setup</td><td>' + fmt(TRAVEL) + '</td></tr>'
+      + addonRows
+      + '<tr class="total-row"><td class="total-label">Estimated Total</td><td class="total-amount">' + fmt(total) + '</td></tr>'
+      + '</table>'
+      + '<p class="disclaimer">This is an estimate only. Final pricing is confirmed upon booking.<br>Prices subject to change based on event specifics.</p>'
+      + '<div class="divider"></div>'
+      + '<p class="footer-pdf">essenceperfumecart.com &nbsp;&middot;&nbsp; Dallas, TX</p>'
+      + '</body></html>';
+
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    setTimeout(function(){ win.print(); }, 900);
+  }
+
+  // --- Radio change listeners ---
+  document.querySelectorAll('input[name="bottleSize"]').forEach(function(r) {
+    r.addEventListener('change', recalc);
+  });
+
+  // --- Init ---
+  recalc();
+</script>
+</body>
+</html>
